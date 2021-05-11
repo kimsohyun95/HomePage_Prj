@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="freeBoardMapper">
+
+	<!-- 자유게시판 글 작성 -->
+	<insert id="fb_insert" parameterType="com.human.vo.FreeBoardVO" useGeneratedKeys="true" keyProperty="fb_id">
+		<selectKey keyProperty="fb_id" resultType="int" order="BEFORE">
+			select freeboard_seq.nextval from dual
+		</selectKey>
+		insert into
+		freeboard(fb_id,fb_title,fb_content,fb_hit,fb_group,fb_step,fb_indent,m_id)
+		values
+		(#{fb_id},#{fb_title},#{fb_content},0,freeboard_seq.currval,0,0,#{m_id})
+	</insert>
+
+	<!-- 자유게시판 글 목록 -->
+	<select id="fb_listPage" resultType="com.human.vo.FreeBoardVO" parameterType="com.human.vo.Criteria">
+		select * from(
+			select
+				fb_id,fb_title,fb_content,fb_date,fb_hit,fb_group,fb_step,fb_indent,m_id,
+				row_number() over(order by fb_group desc, fb_step asc) as rnum from freeboard 
+				where 1=1 <include refid="search"></include>
+		)fb where rnum between #{rowStart} and #{rowEnd} order by fb_group desc, fb_step asc
+		
+	</select>
+	
+	<!-- 자유게시판 게시물 총 갯수 -->
+	<select id="fb_listCount" resultType="int" parameterType="com.human.vo.SearchCriteria">
+			select count(fb_id) from freeboard where 1=1 
+			<include refid="search"></include> and fb_id>0
+	</select>
+		
+	<!-- search 쿼리 -->
+	<sql id="search">
+		<if test="searchType!=null">
+			<if test="searchType == 't'.toString()">and fb_title like '%' || #{keyword} || '%'</if>
+			<if test="searchType == 'c'.toString()">and fb_content like '%' || #{keyword} || '%'</if>
+			<if test="searchType == 'm'.toString()">and m_id like '%' || #{keyword} || '%'</if>
+			<if test="searchType == 'tc'.toString()">and (fb_title like '%' || #{keyword} || '%')or(fb_content like '%' || #{keyword} || '%')</if>
+		</if>
+	</sql>
+
+	<!-- 자유게시판 글 조회 -->
+	<select id="fb_read" parameterType="int"
+		resultType="com.human.vo.FreeBoardVO">
+		select * from freeboard where fb_id = #{fb_id}
+	</select>
+
+	<!-- 자유게시판 글 수정 -->
+	<update id="fb_update" parameterType="com.human.vo.FreeBoardVO">
+		update freeboard set fb_title = #{fb_title}, fb_content=#{fb_content}
+		where fb_id=#{fb_id}
+	</update>
+
+	<!-- 자유게시판 글 삭제 -->
+	<delete id="fb_delete" parameterType="com.human.vo.FreeBoardVO">
+		delete from freeboard where fb_id=#{fb_id}
+	</delete>
+	
+	<!-- 게시글 조회수 -->
+	<update id ="fb_upHit" parameterType="int">
+		update freeboard set fb_hit = fb_hit+1 where fb_id=#{fb_id}
+	</update>
+	
+	<!-- 답글 작성 -->
+	<insert id="fb_reply">
+		insert into
+		freeboard(fb_id,fb_title,fb_content,fb_hit,fb_group,fb_step,fb_indent,m_id)
+		values
+		(freeboard_seq.nextval,#{fb_title},#{fb_content},0,#{fb_group},(#{fb_step}+1),(#{fb_indent}+1),#{m_id})
+	</insert>
+	
+	<!-- 답글 모양 -->
+	<update id="fb_replyShape" parameterType="com.human.vo.FreeBoardVO">
+		update freeboard set fb_step=fb_step+1 where fb_group = #{fb_group} and fb_step>#{fb_step}
+	</update>
+	
+	<!-- 첨부파일 -->
+	<insert id="fb_insertFile" parameterType="hashMap">
+		insert into 
+		fb_file(fb_file_no,fb_id,fb_org_name,fb_stored_name,fb_file_size)
+		values
+		(fb_file_seq.nextval,#{fb_id},#{fb_org_name},#{fb_stored_name},#{fb_file_size})
+	</insert>
+	
+	<!-- 첨부파일 조회 -->
+	<select id="fb_selectFileList" parameterType="int" resultType="hashMap">
+		select fb_file_no,fb_org_name,round(fb_file_size/1024,1) as fb_file_size
+		from fb_file where fb_id = #{fb_id} and fb_del_gb ='n' order by fb_file_no asc
+	</select>
+	
+	<!-- 첨부파일 다운 -->
+	<select id="fb_selectFileDown" parameterType="hashMap" resultType="hashMap">
+		select fb_stored_name, fb_org_name from fb_file where fb_file_no=#{fb_file_no}
+	</select>
+	
+	<!-- 첨부파일 수정,삭제 -->
+	<update id="fb_updateFile" parameterType="hashMap">
+		update fb_file set fb_del_gb = 'y' where fb_file_no = #{fb_file_no}
+	</update>
+</mapper>

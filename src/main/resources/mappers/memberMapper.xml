@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+ <mapper namespace="memberMapper">
+ 
+ 	<!-- 회원 가입 -->
+ 	<insert id="register">
+ 		insert into members(m_id,m_pw,m_email,m_name) values(#{m_id},#{m_pw},#{m_email},#{m_name})
+ 	</insert>
+ 	
+ 	<!-- 로그인 -->
+ 	<select id="login" resultType="com.human.vo.MemberVO">
+ 		select m_id,m_pw,m_email,m_name,m_date from members where m_id=#{m_id} and m_pw=#{m_pw}
+ 	</select>
+ 	
+ 	<!-- 회원정보 수정 -->
+ 	<update id="memberUpdate">
+ 		update members set m_name=#{m_name},m_pw=#{m_pw} where m_id=#{m_id} 
+ 	</update>
+ 	
+ 	<!-- 회원탈퇴 -->
+ 	<delete id="memberDelete">
+ 		delete from members where m_id=#{m_id} and m_pw=#{m_pw}
+ 	</delete>
+ 	
+ 	<!-- 패스워드 체크 -->
+ </mapper>
